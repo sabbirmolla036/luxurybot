@@ -9,9 +9,9 @@ from colorama import init, Fore
 init(autoreset=True)
 
 print("""
-╔═════════════════════════════════════════════╗
-║ Luxury Auto Referral http://t.me/forestarmy ║
-╚═════════════════════════════════════════════╝
+╔══════════════════════════════════════════════╗
+║ Developer Contact: @Sabbirmolla036           ║
+╚══════════════════════════════════════════════╝
 """)
 
 REGISTER_URL = "https://luxury-airdrop.onrender.com/api/create-username"
@@ -28,7 +28,15 @@ TASK_TYPES = [
 CUSTOM_NAMES = [
     "alex", "bella", "charlie", "diana", "ethan", "fiona", "george", "hannah",
     "ian", "julia", "kyle", "luna", "mike", "nina", "oliver", "paula",
-    "quentin", "rose", "sam", "tina", "victor", "wade", "xena", "yuri", "zara"
+    "quentin", "rose", "sam", "tina", "victor", "wade", "xena", "yuri", "zara",
+    "abby", "brad", "carmen", "daniel", "ella", "felix", "grace", "harry",
+    "iris", "jack", "karen", "leo", "mia", "noah", "olga", "peter", "queen",
+    "rachel", "steve", "terry", "ursula", "van", "will", "xander", "yasmin", "zane",
+    "amber", "blake", "claire", "derek", "emily", "frank", "gabby", "helen",
+    "ivan", "joan", "kevin", "laura", "mark", "nathan", "opal", "phoebe",
+    "quincy", "riley", "sophie", "tyler", "una", "veronica", "wayne", "xenia", "yosef", "zoe",
+    "arnold", "beth", "caleb", "delia", "edgar", "faith", "gavin", "holly",
+    "isaac", "jade", "kirk", "lilly", "marvin", "nora", "oscar", "paige", "quinn", "ryan"
 ]
 
 def get_random_username():
