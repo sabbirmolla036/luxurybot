@@ -3,8 +3,8 @@ import json
 import os
 import time
 import random
-from multiprocessing import Process, Lock, Semaphore, Manager
 from colorama import init, Fore
+from threading import Lock
 
 init(autoreset=True)
 
@@ -89,35 +89,34 @@ def complete_tasks(username, lock):
         except Exception as e:
             log_message(f"❌ Task {task} error: {str(e)}", Fore.RED, lock)
 
-def register_user(ref_code, run_tasks, index, total, lock, semaphore):
-    with semaphore:
-        retries = 0
-        while retries < 10:
-            username = get_random_username()
-            payload = {"username": username, "ref": ref_code}
-            try:
-                proxy = get_proxy()
-                response = requests.post(REGISTER_URL, json=payload, proxies=proxy)
-                if response.status_code == 201:
-                    log_message(f"✅ [{index}/{total}] Registered username {username}", Fore.GREEN, lock)
-                    save_username(username, ref_code, lock)
-                    if run_tasks:
-                        complete_tasks(username, lock)
-                    return
-                elif response.status_code == 409:
-                    log_message(f"⚠️ Username {username} already taken, retrying...", Fore.YELLOW, lock)
-                    retries += 1
-                elif response.status_code == 429:
-                    log_message("⏳ Too many requests (429). Waiting 15 seconds...", Fore.RED, lock)
-                    time.sleep(15)
-                    retries += 1
-                else:
-                    log_message(f"❌ Failed to register {username} (Status {response.status_code}): {response.text}", Fore.RED, lock)
-                    return
-            except Exception as e:
-                log_message(f"🚫 Registration error: {str(e)}", Fore.RED, lock)
-                time.sleep(5)
+def register_user(ref_code, run_tasks, index, total, lock):
+    retries = 0
+    while retries < 10:
+        username = get_random_username()
+        payload = {"username": username, "ref": ref_code}
+        try:
+            proxy = get_proxy()
+            response = requests.post(REGISTER_URL, json=payload, proxies=proxy)
+            if response.status_code == 201:
+                log_message(f"✅ [{index}/{total}] Registered username {username}", Fore.GREEN, lock)
+                save_username(username, ref_code, lock)
+                if run_tasks:
+                    complete_tasks(username, lock)
+                return
+            elif response.status_code == 409:
+                log_message(f"⚠️ Username {username} already taken, retrying...", Fore.YELLOW, lock)
                 retries += 1
+            elif response.status_code == 429:
+                log_message("⏳ Too many requests (429). Waiting 15 seconds...", Fore.RED, lock)
+                time.sleep(15)
+                retries += 1
+            else:
+                log_message(f"❌ Failed to register {username} (Status {response.status_code}): {response.text}", Fore.RED, lock)
+                return
+        except Exception as e:
+            log_message(f"🚫 Registration error: {str(e)}", Fore.RED, lock)
+            time.sleep(5)
+            retries += 1
 
 def main():
     try:
@@ -129,22 +128,14 @@ def main():
             print("❌ Referral number must be greater than 0")
             return
 
-        manager = Manager()
         lock = Lock()
-        semaphore = Semaphore(5)  # Adjust based on your proxy/IP safety
 
-        log_message(f"🚀 Starting multiprocessing for {num_requests} referrals...", Fore.CYAN, lock)
+        log_message(f"🚀 Starting sequential registration for {num_requests} referrals...", Fore.CYAN, lock)
 
-        processes = []
         for i in range(num_requests):
-            p = Process(target=register_user, args=(ref_code, run_tasks, i + 1, num_requests, lock, semaphore))
-            p.start()
-            processes.append(p)
+            register_user(ref_code, run_tasks, i + 1, num_requests, lock)
 
-        for p in processes:
-            p.join()
-
-        log_message("🎉 All registrations completed using multiprocessing!", Fore.MAGENTA, lock)
+        log_message("🎉 All registrations completed!", Fore.MAGENTA, lock)
 
     except ValueError:
         print("❌ Referral number must be a number")
