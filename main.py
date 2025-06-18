@@ -46,7 +46,7 @@ def get_random_username():
     rand = ''.join(random.choices("abcdefghijklmnopqrstuvwxyz0123456789", k=3))
     return f"{base}{timestamp}{rand}"
 
-# Preload proxies into memory
+# Load proxies once
 PROXIES = []
 if os.path.exists(PROXY_FILE):
     with open(PROXY_FILE, "r") as f:
@@ -85,7 +85,7 @@ def complete_tasks(username, lock):
                 log_message(f"✅ Completed task {task} for {username}", Fore.GREEN, lock)
             else:
                 log_message(f"⚠️ Failed task {task} for {username} - Status {response.status_code}", Fore.YELLOW, lock)
-            time.sleep(0.7)  # Reduced for speed
+            time.sleep(1.5)  # Reduced for 5x speed
         except Exception as e:
             log_message(f"❌ Task error for {username} on {task}: {e}", Fore.RED, lock)
 
@@ -127,8 +127,8 @@ def main():
             return
 
         lock = Lock()
-        threads = min(32, num_requests)  # Max 32 threads or number of requests
-        log_message(f"🚀 Starting registration with {threads}x speed for {num_requests} referrals...", Fore.CYAN, lock)
+        threads = min(10, num_requests)  # 5x faster: use up to 10 threads
+        log_message(f"🚀 Starting registration with {threads} threads for {num_requests} referrals...", Fore.CYAN, lock)
 
         with ThreadPoolExecutor(max_workers=threads) as executor:
             for i in range(num_requests):
