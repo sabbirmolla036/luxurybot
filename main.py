@@ -46,16 +46,15 @@ def get_random_username():
     rand = ''.join(random.choices("abcdefghijklmnopqrstuvwxyz0123456789", k=3))
     return f"{base}{timestamp}{rand}"
 
-def load_proxies():
-    if os.path.exists(PROXY_FILE):
-        with open(PROXY_FILE, "r") as f:
-            return [line.strip() for line in f if line.strip()]
-    return []
+# Preload proxies into memory
+PROXIES = []
+if os.path.exists(PROXY_FILE):
+    with open(PROXY_FILE, "r") as f:
+        PROXIES = [line.strip() for line in f if line.strip()]
 
 def get_proxy():
-    proxies = load_proxies()
-    if proxies:
-        proxy = random.choice(proxies)
+    if PROXIES:
+        proxy = random.choice(PROXIES)
         return {"http": proxy, "https": proxy}
     return None
 
@@ -73,31 +72,31 @@ def save_username(username, ref_code, lock):
             usernames.append({"username": username, "ref": ref_code})
             with open(JSON_FILE, "w") as f:
                 json.dump(usernames, f, indent=4)
-        except:
-            pass
+        except Exception as e:
+            log_message(f"Error saving username: {e}", Fore.RED, lock)
 
 def complete_tasks(username, lock):
     for task in TASK_TYPES:
         payload = {"username": username, "taskType": task}
         try:
             proxy = get_proxy()
-            response = requests.post(TASK_URL, json=payload, proxies=proxy, timeout=20)
+            response = requests.post(TASK_URL, json=payload, proxies=proxy, timeout=15)
             if response.status_code == 200:
                 log_message(f"✅ Completed task {task} for {username}", Fore.GREEN, lock)
             else:
-                log_message(f"⚠️ Failed task {task} for {username}", Fore.YELLOW, lock)
-            time.sleep(5)  # Reduced sleep to make it faster
-        except:
-            pass  # Suppressed task error
+                log_message(f"⚠️ Failed task {task} for {username} - Status {response.status_code}", Fore.YELLOW, lock)
+            time.sleep(0.7)  # Reduced for speed
+        except Exception as e:
+            log_message(f"❌ Task error for {username} on {task}: {e}", Fore.RED, lock)
 
 def register_user(ref_code, run_tasks, index, total, lock):
     retries = 0
-    while retries < 10:
+    while retries < 8:
         username = get_random_username()
         payload = {"username": username, "ref": ref_code}
         try:
             proxy = get_proxy()
-            response = requests.post(REGISTER_URL, json=payload, proxies=proxy, timeout=20)
+            response = requests.post(REGISTER_URL, json=payload, proxies=proxy, timeout=15)
             if response.status_code == 201:
                 log_message(f"✅ [{index}/{total}] Registered username {username}", Fore.GREEN, lock)
                 save_username(username, ref_code, lock)
@@ -107,12 +106,14 @@ def register_user(ref_code, run_tasks, index, total, lock):
             elif response.status_code == 409:
                 retries += 1
             elif response.status_code == 429:
-                time.sleep(15)
+                time.sleep(10)
                 retries += 1
             else:
+                log_message(f"❌ Failed to register {username} - Status: {response.status_code}", Fore.RED, lock)
                 return
-        except:
-            time.sleep(3)
+        except Exception as e:
+            log_message(f"❌ Registration error for {username}: {e}", Fore.RED, lock)
+            time.sleep(2)
             retries += 1
 
 def main():
@@ -126,16 +127,17 @@ def main():
             return
 
         lock = Lock()
-        log_message(f"🚀 Starting registration with 4x speed for {num_requests} referrals...", Fore.CYAN, lock)
+        threads = min(32, num_requests)  # Max 32 threads or number of requests
+        log_message(f"🚀 Starting registration with {threads}x speed for {num_requests} referrals...", Fore.CYAN, lock)
 
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ThreadPoolExecutor(max_workers=threads) as executor:
             for i in range(num_requests):
                 executor.submit(register_user, ref_code, run_tasks, i + 1, num_requests, lock)
 
         log_message("🎉 All registrations completed!", Fore.MAGENTA, lock)
 
-    except:
-        pass  # Suppressed all main errors
+    except Exception as e:
+        print(f"❌ Error: {e}")
 
 if __name__ == "__main__":
     main()
